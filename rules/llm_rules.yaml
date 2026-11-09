@@ -1,0 +1,55 @@
+# Generic Semgrep rules for LLM-app risks.
+# Deliberately written as a typical rule author would write them (general
+# heuristics), NOT tuned to the files in cases/. Tuning rules to the test set
+# would make the benchmark meaningless.
+rules:
+  - id: llm-prompt-written-to-log
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Prompt content reaches a logging call. Prompts usually contain user input
+      (PII, card numbers). Redact before logging. (OWASP LLM02)
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: $PROMPT
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)^\w*prompt\w*$
+    pattern-sanitizers:
+      - pattern: redact(...)
+      - pattern: mask(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $LOG.$LEVEL(...)
+          - metavariable-regex:
+              metavariable: $LEVEL
+              regex: ^(debug|info|warning|error|critical|exception)$
+
+  - id: llm-api-key-literal
+    languages: [python]
+    severity: ERROR
+    message: >-
+      String literal looks like an API key. If it is placed in a prompt, users
+      can extract it. Load secrets from the environment, server-side. (OWASP LLM07)
+    pattern-regex: (sk|pk|rk)_(live|test)_[A-Za-z0-9_]{8,}
+
+  - id: llm-dynamic-tool-dispatch
+    languages: [python]
+    severity: WARNING
+    message: >-
+      Tool chosen by model output is executed via dynamic dispatch. Make sure
+      each tool enforces its own authorization; model output is untrusted. (OWASP LLM06)
+    pattern-either:
+      - pattern: $TOOLS[$CALL["tool"]](**$CALL["args"])
+      - pattern: $TOOLS[$NAME](**$CALL["args"])
+
+  - id: subprocess-shell-with-variable
+    languages: [python]
+    severity: ERROR
+    message: >-
+      subprocess called with shell=True and a non-literal command. If the value
+      comes from an LLM or user, this is command injection. (CWE-78, OWASP LLM05)
+    patterns:
+      - pattern: subprocess.$FN($CMD, ..., shell=True, ...)
+      - pattern-not: subprocess.$FN("...", ..., shell=True, ...)

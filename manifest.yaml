@@ -1,0 +1,37 @@
+# Ground truth ("answer key") for the benchmark.
+# Every label below is PROVEN by a test in tests/test_cases.py, not by opinion.
+#   vulnerable -> a scanner SHOULD report it  (report = true positive, silence = false negative)
+#   safe       -> a scanner should NOT report (report = false positive, silence = true negative)
+
+cases:
+  - file: cases/log_leak/vulnerable.py
+    label: vulnerable
+    category: LLM02 Sensitive Information Disclosure (PAN in logs)
+  - file: cases/log_leak/fixed.py
+    label: safe
+  - file: cases/log_leak/near_miss.py
+    label: safe
+
+  - file: cases/prompt_secret/vulnerable.py
+    label: vulnerable
+    category: LLM07 System Prompt Leakage (credential in prompt)
+  - file: cases/prompt_secret/fixed.py
+    label: safe
+  - file: cases/prompt_secret/near_miss.py
+    label: safe
+
+  - file: cases/indirect_injection/vulnerable.py
+    label: vulnerable
+    category: LLM01 Indirect Prompt Injection -> LLM06 Excessive Agency (exfiltration)
+  - file: cases/indirect_injection/fixed.py
+    label: safe
+  - file: cases/indirect_injection/near_miss.py
+    label: safe
+
+  - file: cases/shell_tool/vulnerable.py
+    label: vulnerable
+    category: LLM06 Excessive Agency + LLM05 Improper Output Handling (CWE-78)
+  - file: cases/shell_tool/fixed.py
+    label: safe
+  - file: cases/shell_tool/near_miss.py
+    label: safe
